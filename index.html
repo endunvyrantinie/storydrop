@@ -1197,10 +1197,17 @@ function escAttr(s){return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'
       }
     });
 
+    function hideAuthModal() {
+      var m = document.getElementById('authModal');
+      if (m) m.style.display = 'none';
+      var e = document.getElementById('authError');
+      if (e) { e.style.display = 'none'; e.textContent = ''; }
+    }
+
     window.signInGoogle = function() {
       var provider = new firebase.auth.GoogleAuthProvider();
       _auth.signInWithPopup(provider)
-        .then(function(r) { saveUserToFirestore(r.user); closeModal(); })
+        .then(function(r) { saveUserToFirestore(r.user); hideAuthModal(); })
         .catch(function(e) { showAuthError(e.message); });
     };
 
@@ -1209,7 +1216,7 @@ function escAttr(s){return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'
       var pass = document.getElementById('authPassword').value;
       if (!email || !pass) { showAuthError('Please enter email and password.'); return; }
       _auth.signInWithEmailAndPassword(email, pass)
-        .then(function() { closeModal(); })
+        .then(function() { hideAuthModal(); })
         .catch(function(e) { showAuthError(e.message); });
     };
 
@@ -1219,7 +1226,7 @@ function escAttr(s){return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'
       if (!email || !pass) { showAuthError('Please fill in email and password.'); return; }
       if (pass.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
       _auth.createUserWithEmailAndPassword(email, pass)
-        .then(function(r) { saveUserToFirestore(r.user); closeModal(); })
+        .then(function(r) { saveUserToFirestore(r.user); hideAuthModal(); })
         .catch(function(e) { showAuthError(e.message); });
     };
 
