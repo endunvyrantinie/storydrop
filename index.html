@@ -199,6 +199,8 @@ select { width: 100%; border: 1px solid var(--border); border-radius: 10px; padd
       <div class="pill-row" id="langRow">
         <button class="pill lang active" data-lang="English">🇬🇧 English</button>
         <button class="pill lang" data-lang="Bahasa Malaysia">🇲🇾 Bahasa Malaysia</button>
+        <button class="pill lang" data-lang="Bahasa Iban">🌿 Bahasa Iban</button>
+        <button class="pill lang" data-lang="Bahasa Kadazan">🏔️ Bahasa Kadazan</button>
       </div>
 
       <span class="label" id="lbl-idea">Your story idea (leave blank for a surprise)</span>
@@ -267,7 +269,9 @@ var currentCoverUrl = null;
 // ─── GENRE NAMES ────────────────────────────────────────────────────────
 var genreNames = {
   English: { Romance:'Romance', Horror:'Horror', Adventure:'Adventure', Comedy:'Comedy', Mystery:'Mystery', Fantasy:'Fantasy', Autobiografi:'Autobiography', Fable:'Fable', Folklore:'Folklore', 'Sci-Fi':'Sci-Fi' },
-  'Bahasa Malaysia': { Romance:'Cinta', Horror:'Seram', Adventure:'Pengembaraan', Comedy:'Komedi', Mystery:'Misteri', Fantasy:'Fantasi', Autobiografi:'Autobiografi', Fable:'Fabel', Folklore:'Cerita Rakyat', 'Sci-Fi':'Sains Fiksyen' }
+  'Bahasa Malaysia': { Romance:'Cinta', Horror:'Seram', Adventure:'Pengembaraan', Comedy:'Komedi', Mystery:'Misteri', Fantasy:'Fantasi', Autobiografi:'Autobiografi', Fable:'Fabel', Folklore:'Cerita Rakyat', 'Sci-Fi':'Sains Fiksyen' },
+  'Bahasa Iban': { Romance:'Kasih Sayang', Horror:'Gerun', Adventure:'Pengelandik', Comedy:'Lawak', Mystery:'Misteri', Fantasy:'Fantasi', Autobiografi:'Autobiografi', Fable:'Cherita Binatang', Folklore:'Cherita Tuai Rumah', 'Sci-Fi':'Sains Fiksyen' },
+  'Bahasa Kadazan': { Romance:'Aakan Hipod', Horror:'Miampai', Adventure:'Pongowopot', Comedy:'Miagol', Mystery:'Misteri', Fantasy:'Fantasi', Autobiografi:'Autobiografi', Fable:'Toritok Milo', Folklore:'Toritok Tulun Tuhau', 'Sci-Fi':'Sains Fiksyen' }
 };
 
 // ─── UI STRINGS ─────────────────────────────────────────────────────────
@@ -291,6 +295,26 @@ var ui = {
     editBtn:'Edit', doneBtn:'Simpan edit', cancelBtn:'Batal',
     emptyText:'Cerita anda akan muncul di sini', errorText:'Ralat berlaku. Sila cuba lagi.',
     vizTitle:'Visualisasi Cerita', objectLabel:'Tulis dari sudut pandang...'
+  },
+  'Bahasa Iban': {
+    genreLabel:'Jenis Cherita', langLabel:'Bahasa', ideaLabel:'Idea cherita nuan (chelap aja ngosong)',
+    ideaPlaceholder:'cth. Dua orang bejako di pasar... / Rumah panjai ke ajaib...',
+    voiceLabel:'Suara pencerita', genBtn:'Jaga cherita aku ✨', genBtnLoading:'Nulis cherita...',
+    loadingText:'Ngaga cherita nuan...', listenBtn:'Dengarka', pauseBtn:'Rehat',
+    copyBtn:'Salin', copiedBtn:'Disalin!', newBtn:'Cherita baru', saveBtn:'Simpan',
+    editBtn:'Ubah', doneBtn:'Simpan ubah', cancelBtn:'Batal',
+    emptyText:'Cherita nuan ulih diau ditu', errorText:'Salah berlaku. Cuba semula.',
+    vizTitle:'Gambarka Cherita', objectLabel:'Nulis ari peda...'
+  },
+  'Bahasa Kadazan': {
+    genreLabel:'Jenis Toritok', langLabel:'Bahasa', ideaLabel:'Idea toritok om (tinggal kosong om poii)',
+    ideaPlaceholder:'cth. Dua orang kopizo di pekan... / Walai om ajaib...',
+    voiceLabel:'Suara ponongguratan', genBtn:'Buat toritok oku ✨', genBtnLoading:'Menulis toritok...',
+    loadingText:'Ngavi toritok om...', listenBtn:'Odohon', pauseBtn:'Rehat',
+    copyBtn:'Salin', copiedBtn:'Disalin!', newBtn:'Toritok baru', saveBtn:'Simpan',
+    editBtn:'Ubah', doneBtn:'Simpan ubah', cancelBtn:'Batal',
+    emptyText:'Toritok om dogo diti', errorText:'Salah. Cuba lagi.',
+    vizTitle:'Gambaran Toritok', objectLabel:'Nulis ari pandangan...'
   }
 };
 
@@ -405,12 +429,13 @@ function loadVoices() {
   var sel = document.getElementById('vsel');
   sel.innerHTML = '';
   var isBM = lang === 'Bahasa Malaysia';
+  var isIban = lang === 'Bahasa Iban';
+  var isKadazan = lang === 'Bahasa Kadazan';
   var list;
-  if (isBM) {
-    // Prefer MS voices, then neutral en-GB/en-AU over en-US for BM narration
+  if (isBM || isIban || isKadazan) {
+    // Prefer MS voices — also best for Iban/Kadazan since no TTS exists for these languages
     list = voices.filter(function(v){ return v.lang.startsWith('ms'); });
     if (!list.length) {
-      // en-GB and en-AU sound more neutral for BM text
       list = voices.filter(function(v){ return v.lang === 'en-GB' || v.lang === 'en-AU'; });
     }
     if (!list.length) {
@@ -461,8 +486,14 @@ function doGenerate() {
   document.getElementById('output').innerHTML = '<div class="loading"><span class="spinner"></span>' + t.loadingText + '</div>';
 
   var isBM = lang === 'Bahasa Malaysia';
+  var isIban = lang === 'Bahasa Iban';
+  var isKadazan = lang === 'Bahasa Kadazan';
   var langInstr = isBM
     ? 'Write entirely in natural, warm Bahasa Malaysia (not overly formal). Malaysian cultural elements welcome.'
+    : isIban
+    ? 'Write entirely in Bahasa Iban (the indigenous Iban language of Sarawak, Malaysia). Use authentic Iban vocabulary, expressions, and cultural references. Include Iban cultural elements like rumah panjai (longhouse), adat, gawai, bejalai, and the natural landscapes of Sarawak. The language should feel natural and authentic to native Iban speakers, not a direct translation.'
+    : isKadazan
+    ? 'Write entirely in Bahasa Kadazan (the indigenous Kadazan-Dusun language of Sabah, Malaysia). Use authentic Kadazan vocabulary, expressions, and cultural references. Include Kadazan cultural elements like walai (longhouse), Pesta Kaamatan harvest festival, momogun (indigenous people), the slopes of Mount Kinabalu, paddy farming culture, and traditional Kadazan customs. The language should feel natural and authentic to native Kadazan speakers, not a direct translation from Malay.'
     : 'Write in English. Malaysian or Southeast Asian setting welcome.';
 
   // Build genre instruction from selectedGenres (1 or 2)
