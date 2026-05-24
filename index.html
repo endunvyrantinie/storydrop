@@ -166,7 +166,7 @@ select { width: 100%; border: 1px solid var(--border); border-radius: 10px; padd
   <!-- GENERATE TAB -->
   <div class="section-view active" id="tab-generate">
     <div class="card">
-      <span class="label" id="lbl-genre">Genre</span>
+      <span class="label" id="lbl-genre">Genre <span id="genreHint" style="font-weight:400;text-transform:none;font-size:11px;color:#aaa;">(pick 1 or 2)</span></span>
       <div class="pill-row" id="genreRow">
         <button class="pill romance active" data-genre="Romance" data-emoji="💕">💕 Romance</button>
         <button class="pill horror" data-genre="Horror" data-emoji="👻">👻 Horror</button>
@@ -251,7 +251,8 @@ select { width: 100%; border: 1px solid var(--border); border-radius: 10px; padd
 <script>
 // ─── STATE ─────────────────────────────────────────────────────────────
 var API_BASE = 'https://storydrop-backend-production.up.railway.app';
-var genre = 'Romance', emoji = '💕', lang = 'English', voices = [];
+var selectedGenres = [{genre:'Romance',emoji:'💕'}], lang = 'English', voices = [];
+var genre = 'Romance', emoji = '💕'; // kept for compat
 var storyText = '', storyTitle = '', storyGenre = '', storyEmoji = '';
 var isPlaying = false, progTimer = null;
 var isPro = false;
@@ -317,16 +318,37 @@ function showTab(name) {
 document.getElementById('genreRow').addEventListener('click', function(e) {
   var btn = e.target.closest('.pill');
   if (!btn) return;
-  document.querySelectorAll('#genreRow .pill').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  genre = btn.dataset.genre;
-  emoji = btn.dataset.emoji;
-  document.getElementById('autobioRow').style.display = genre === 'Autobiografi' ? 'block' : 'none';
-  if (genre === 'Autobiografi') {
-    document.getElementById('idea').placeholder = lang === 'Bahasa Malaysia' ? 'cth. Kisah hidupku yang penuh dugaan...' : 'e.g. A journey full of challenges and lessons...';
+  var g = btn.dataset.genre;
+  var em = btn.dataset.emoji;
+  // Check if already selected
+  var idx = selectedGenres.findIndex(function(x){ return x.genre === g; });
+  if (idx > -1) {
+    // Deselect — but must keep at least 1
+    if (selectedGenres.length === 1) return;
+    selectedGenres.splice(idx, 1);
+    btn.classList.remove('active');
   } else {
-    document.getElementById('idea').placeholder = ui[lang].ideaPlaceholder;
+    // Select — max 2
+    if (selectedGenres.length >= 2) {
+      // Remove first selected
+      var first = selectedGenres.shift();
+      document.querySelectorAll('#genreRow .pill').forEach(function(b){
+        if (b.dataset.genre === first.genre) b.classList.remove('active');
+      });
+    }
+    selectedGenres.push({genre: g, emoji: em});
+    btn.classList.add('active');
   }
+  // Sync compat vars with primary genre
+  genre = selectedGenres[0].genre;
+  emoji = selectedGenres[0].emoji;
+  // Show autobio picker only if autobiografi is one of selected
+  var hasAutobio = selectedGenres.some(function(x){ return x.genre === 'Autobiografi'; });
+  document.getElementById('autobioRow').style.display = hasAutobio ? 'block' : 'none';
+  document.getElementById('idea').placeholder = ui[lang].ideaPlaceholder;
+  // Update hint
+  var hint = document.getElementById('genreHint');
+  if (hint) hint.textContent = selectedGenres.length === 2 ? '(2 selected — click to deselect)' : '(pick 1 or 2)';
 });
 
 // ─── AUTOBIOGRAFI OBJECT ──────────────────────────────────────────────────
@@ -355,6 +377,7 @@ document.getElementById('langRow').addEventListener('click', function(e) {
   btn.classList.add('active');
   lang = btn.dataset.lang;
   applyUI();
+  loadVoices();
 });
 
 function applyUI() {
@@ -370,6 +393,9 @@ function applyUI() {
   document.querySelectorAll('#genreRow .pill').forEach(function(b) {
     var g = b.dataset.genre;
     b.innerHTML = b.dataset.emoji + ' ' + (names[g] || g);
+    // Restore active state from selectedGenres
+    if (selectedGenres.some(function(x){ return x.genre === g; })) b.classList.add('active');
+    else b.classList.remove('active');
   });
 }
 
@@ -378,12 +404,33 @@ function loadVoices() {
   voices = window.speechSynthesis.getVoices();
   var sel = document.getElementById('vsel');
   sel.innerHTML = '';
-  var list = voices.filter(function(v){ return v.lang.startsWith('en') || v.lang.startsWith('ms'); });
+  var isBM = lang === 'Bahasa Malaysia';
+  var list;
+  if (isBM) {
+    // Prefer MS voices, then neutral en-GB/en-AU over en-US for BM narration
+    list = voices.filter(function(v){ return v.lang.startsWith('ms'); });
+    if (!list.length) {
+      // en-GB and en-AU sound more neutral for BM text
+      list = voices.filter(function(v){ return v.lang === 'en-GB' || v.lang === 'en-AU'; });
+    }
+    if (!list.length) {
+      list = voices.filter(function(v){ return v.lang.startsWith('en'); });
+    }
+  } else {
+    list = voices.filter(function(v){ return v.lang.startsWith('en'); });
+  }
   if (!list.length) list = voices.slice(0, 14);
+  // Put female voices first — tend to sound more natural for storytelling
+  list.sort(function(a, b) {
+    var aF = /female|woman|girl|zira|samantha|moira|tessa|fiona|victoria|karen/i.test(a.name) ? 0 : 1;
+    var bF = /female|woman|girl|zira|samantha|moira|tessa|fiona|victoria|karen/i.test(b.name) ? 0 : 1;
+    return aF - bF;
+  });
   list.forEach(function(v, i) {
     var o = document.createElement('option');
-    o.value = i;
-    o.textContent = v.name + ' (' + v.lang + ')';
+    o.value = voices.indexOf(v); // use full voices index for accurate lookup
+    var tag = v.lang.startsWith('ms') ? ' 🇲🇾' : v.lang === 'en-GB' ? ' 🇬🇧' : v.lang === 'en-AU' ? ' 🇦🇺' : '';
+    o.textContent = v.name + ' (' + v.lang + ')' + tag;
     sel.appendChild(o);
   });
 }
@@ -418,30 +465,37 @@ function doGenerate() {
     ? 'Write entirely in natural, warm Bahasa Malaysia (not overly formal). Malaysian cultural elements welcome.'
     : 'Write in English. Malaysian or Southeast Asian setting welcome.';
 
-  var genreInstr = '';
-  if (genre === 'Autobiografi') {
-    var obj = selectedObj || (document.getElementById('customObj').value) || 'sebatang pen';
-    genreInstr = isBM
-      ? 'Ini adalah cerita AUTOBIOGRAFI dari perspektif orang pertama "aku" sebagai ' + obj + '. Cerita harus ditulis seolah-olah ' + obj + ' itu sendiri bercerita tentang hidupnya, pengalamannya, dan perasaannya. Gaya naratif yang imaginatif dan puitis.'
-      : 'This is an AUTOBIOGRAPHY written from the first-person perspective of "I" as ' + obj + '. Write as if the object itself is narrating its life, experiences and feelings. Imaginative, poetic narrative style.';
-  } else if (genre === 'Fable') {
-    genreInstr = isBM ? 'Cerita fabel dengan haiwan sebagai watak utama dan pengajaran moral yang jelas di akhir.' : 'A fable with animals as main characters and a clear moral lesson at the end.';
-  } else if (genre === 'Folklore') {
-    genreInstr = isBM ? 'Cerita rakyat atau lagenda bergaya tradisional Malaysia/Nusantara.' : 'A folklore or legend in traditional Malaysian/Nusantara style.';
+  // Build genre instruction from selectedGenres (1 or 2)
+  var genreNames2 = selectedGenres.map(function(x){ return x.genre; });
+  var genreStr = genreNames2.join(' + ');
+  var genreInstr = 'Write a ' + genreStr + ' story';
+  if (genreNames2.length === 2) {
+    genreInstr = 'Write a story that BLENDS both ' + genreNames2[0] + ' AND ' + genreNames2[1] + ' genres creatively. Both elements should be clearly present and intertwined.';
   }
+  var hasAutobio = genreNames2.indexOf('Autobiografi') > -1;
+  var hasFable = genreNames2.indexOf('Fable') > -1;
+  var hasFolklore = genreNames2.indexOf('Folklore') > -1;
+  if (hasAutobio) {
+    var obj = selectedObj || (document.getElementById('customObj').value) || 'sebatang pen';
+    genreInstr += isBM
+      ? ' dari perspektif orang pertama sebagai ' + obj + '. Tulis seolah-olah ' + obj + ' itu sendiri bercerita.'
+      : ' from the first-person perspective as ' + obj + '. Write as if the object itself narrates its story.';
+  }
+  if (hasFable) genreInstr += isBM ? ' Sertakan haiwan sebagai watak dan pengajaran moral.' : ' Include animals as characters and a moral lesson.';
+  if (hasFolklore) genreInstr += isBM ? ' Gunakan elemen cerita rakyat Malaysia/Nusantara.' : ' Use Malaysian/Nusantara folklore elements.';
 
   fetch(API_BASE + '/generate-story', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ genre: genre, lang: lang, idea: idea, selectedObj: selectedObj, isPro: isPro })
+    body: JSON.stringify({ genre: genreStr, lang: lang, idea: idea, selectedObj: selectedObj, isPro: isPro })
   })
   .then(function(r){ return r.json(); })
   .then(function(data) {
     if (!data.success) throw new Error(data.error);
     storyTitle = data.title;
     storyText = data.story;
-    storyGenre = genre;
-    storyEmoji = emoji;
+    storyGenre = selectedGenres[0].genre;
+    storyEmoji = selectedGenres.map(function(x){ return x.emoji; }).join('');
     if (!isPro) { generationsUsed++; localStorage.setItem('sd_gens', generationsUsed); updatePlanBar(); }
     renderStoryCard(false);
   })
@@ -732,9 +786,7 @@ function loadVisualization() {
 function toggleVoice() {
   if (isPlaying) { stopVoice(); return; }
   var sel = document.getElementById('vsel');
-  var list = voices.filter(function(v){ return v.lang.startsWith('en') || v.lang.startsWith('ms'); });
-  if (!list.length) list = voices.slice(0, 14);
-  var voice = list[parseInt(sel.value)] || voices[0];
+  var voice = voices[parseInt(sel.value)] || voices[0];
   var utt = new SpeechSynthesisUtterance(storyTitle + '. ' + storyText.replace(/\n\n/g,' '));
   if (voice) utt.voice = voice;
   utt.rate = 0.93;
