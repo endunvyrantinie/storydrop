@@ -1237,7 +1237,12 @@ function copyStory(btn){
 // ── MODALS ──
 function showPaywall(){document.getElementById('paywallModal').style.display='flex';}
 function showUpgradeModal(){document.getElementById('upgradeModal').style.display='flex';}
-function closeModal(){document.getElementById('upgradeModal').style.display='none';document.getElementById('paywallModal').style.display='none';}
+function closeModal(){
+  document.getElementById('upgradeModal').style.display='none';
+  document.getElementById('paywallModal').style.display='none';
+  var am=document.getElementById('authModal'); if(am) am.style.display='none';
+  var ae=document.getElementById('authError'); if(ae) ae.style.display='none';
+}
 function activatePro(){
   isPro=true;closeModal();updatePlanBar();
   document.querySelector('.upgrade-btn').textContent='⭐ Pro Active';
