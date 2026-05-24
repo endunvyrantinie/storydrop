@@ -363,17 +363,80 @@ select {
   position: fixed; inset: 0; background: rgba(28,25,23,0.65);
   display: flex; align-items: center; justify-content: center;
   z-index: 999; padding: 1rem; backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
 }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .modal {
-  background: #fff; border-radius: 20px; padding: 2rem;
-  max-width: 380px; width: 100%; text-align: center;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+  background: #fff; border-radius: 24px; padding: 2rem;
+  max-width: 400px; width: 100%; text-align: center;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.25);
+  animation: slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1);
 }
 .modal h2 { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 8px; }
 .modal p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 1.25rem; }
 .modal-price { background: var(--gold-light); border-radius: 12px; padding: 14px; margin-bottom: 1.25rem; font-size: 22px; font-weight: 700; color: var(--gold-dark); border: 1px solid rgba(217,119,6,0.2); }
-.modal-btn { width: 100%; padding: 13px; border-radius: 12px; border: none; background: var(--gold); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 8px; font-family: inherit; box-shadow: 0 4px 12px rgba(217,119,6,0.3); }
+.modal-btn { width: 100%; padding: 13px; border-radius: 12px; border: none; background: var(--gold); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 8px; font-family: inherit; box-shadow: 0 4px 12px rgba(217,119,6,0.3); transition: all 0.15s; }
+.modal-btn:hover { background: var(--gold-dark); transform: translateY(-1px); }
 .modal-close { background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 6px; font-family: inherit; }
+.modal-close:hover { color: var(--ink); }
+
+/* Auth Modal specific */
+.auth-modal { max-width: 420px; padding: 0; overflow: hidden; }
+.auth-header {
+  background: var(--ink);
+  padding: 2rem 2rem 1.5rem;
+  text-align: center;
+  position: relative;
+}
+.auth-header-logo { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 900; color: #fff; }
+.auth-header-logo em { color: #FCD34D; font-style: normal; }
+.auth-header p { font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 4px; }
+.auth-close-btn {
+  position: absolute; top: 14px; right: 14px;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: none; background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.7); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.auth-close-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+.auth-body { padding: 1.5rem 2rem 2rem; }
+.auth-tab-row { display: flex; gap: 4px; background: var(--bg); border-radius: 10px; padding: 3px; margin-bottom: 1.25rem; }
+.auth-tab { flex: 1; padding: 8px; border-radius: 8px; border: none; background: transparent; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.auth-tab.active { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.auth-input {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--border);
+  border-radius: 12px; font-size: 14px; font-family: inherit;
+  color: var(--ink); background: var(--bg); outline: none;
+  margin-bottom: 10px; transition: all 0.15s;
+  display: block;
+}
+.auth-input:focus { border-color: var(--gold); background: #fff; box-shadow: 0 0 0 3px rgba(217,119,6,0.08); }
+.auth-submit-btn {
+  width: 100%; padding: 13px; border-radius: 12px; border: none;
+  background: var(--ink); color: #fff; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit; margin-bottom: 10px;
+  transition: all 0.18s; box-shadow: 0 3px 10px rgba(28,25,23,0.2);
+}
+.auth-submit-btn:hover { background: var(--ink2); transform: translateY(-1px); }
+.auth-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.auth-google-btn {
+  width: 100%; padding: 12px; border-radius: 12px;
+  border: 1.5px solid var(--border); background: #fff;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-family: inherit; margin-bottom: 14px; transition: all 0.15s;
+  color: var(--ink);
+}
+.auth-google-btn:hover { border-color: #aaa; background: var(--bg); }
+.auth-divider { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.auth-divider-line { flex: 1; height: 1px; background: var(--border); }
+.auth-divider-text { font-size: 12px; color: var(--muted); }
+.auth-error { font-size: 12px; color: var(--rose); margin-bottom: 10px; padding: 8px 12px; background: var(--rose-light); border-radius: 8px; border: 1px solid rgba(225,29,72,0.15); display: none; text-align: left; }
+.auth-success { font-size: 13px; color: var(--sage); margin-bottom: 10px; padding: 10px 12px; background: var(--sage-light); border-radius: 8px; border: 1px solid rgba(22,163,74,0.2); display: none; text-align: left; }
+.auth-forgot { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; font-family: inherit; display: block; margin: -4px auto 10px; text-decoration: underline; }
+.auth-forgot:hover { color: var(--ink); }
 
 /* ── MISC ── */
 .loading { text-align: center; padding: 3.5rem 1rem; color: var(--muted); font-size: 14px; }
@@ -524,32 +587,51 @@ select {
 
 <!-- MODALS -->
 <!-- AUTH MODAL -->
-<div class="modal-bg" id="authModal" style="display:none;">
-  <div class="modal">
-    <div id="authModalContent">
-      <div style="font-size:36px;margin-bottom:10px;">👤</div>
-      <h2>Welcome to StoryDrop</h2>
-      <p>Sign in to save your stories to the cloud and track your Pro status.</p>
-
-      <!-- Google Sign In -->
-      <button onclick="signInGoogle()" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;font-family:inherit;">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18"> Continue with Google
-      </button>
-
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <div style="flex:1;height:1px;background:var(--border);"></div>
-        <span style="font-size:12px;color:var(--muted);">or</span>
-        <div style="flex:1;height:1px;background:var(--border);"></div>
+<div class="modal-bg" id="authModal" style="display:none;" onclick="handleModalBgClick(event)">
+  <div class="modal auth-modal" id="authModalInner">
+    <div class="auth-header">
+      <button class="auth-close-btn" onclick="closeModal()">✕</button>
+      <div class="auth-header-logo">Story<em>Drop</em></div>
+      <p>Save stories to cloud · Track your Pro status</p>
+    </div>
+    <div class="auth-body">
+      <!-- Tab switcher -->
+      <div class="auth-tab-row">
+        <button class="auth-tab active" id="tabSignIn" onclick="switchAuthTab('signin')">Sign In</button>
+        <button class="auth-tab" id="tabSignUp" onclick="switchAuthTab('signup')">Create Account</button>
       </div>
 
-      <input type="email" id="authEmail" placeholder="Email address" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;outline:none;margin-bottom:8px;">
-      <input type="password" id="authPassword" placeholder="Password" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;outline:none;margin-bottom:8px;">
-      <div id="authError" style="font-size:12px;color:var(--rose);margin-bottom:8px;display:none;"></div>
+      <!-- Google button -->
+      <button class="auth-google-btn" onclick="signInGoogle()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18">
+        Continue with Google
+      </button>
 
-      <button onclick="signInEmail()" style="width:100%;padding:12px;border-radius:12px;border:none;background:var(--ink);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;font-family:inherit;">Sign In</button>
-      <button onclick="signUpEmail()" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--ink);font-size:14px;font-weight:600;cursor:pointer;margin-bottom:12px;font-family:inherit;">Create Account</button>
+      <div class="auth-divider">
+        <div class="auth-divider-line"></div>
+        <span class="auth-divider-text">or use email</span>
+        <div class="auth-divider-line"></div>
+      </div>
 
-      <button class="modal-close" onclick="closeModal()">Close</button>
+      <!-- Error / Success messages -->
+      <div class="auth-error" id="authError"></div>
+      <div class="auth-success" id="authSuccess"></div>
+
+      <!-- Form -->
+      <input class="auth-input" type="email" id="authEmail" placeholder="Email address" autocomplete="email">
+      <input class="auth-input" type="password" id="authPassword" placeholder="Password (min 6 characters)" autocomplete="current-password">
+
+      <!-- Sign In view -->
+      <div id="authSignInView">
+        <button class="auth-submit-btn" id="authSignInBtn" onclick="signInEmail()">Sign In</button>
+        <button class="auth-forgot" onclick="sendPasswordReset()">Forgot password?</button>
+      </div>
+
+      <!-- Sign Up view -->
+      <div id="authSignUpView" style="display:none;">
+        <button class="auth-submit-btn" id="authSignUpBtn" onclick="signUpEmail()">Create Account</button>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;">By creating an account you agree to our terms of service.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -623,13 +705,67 @@ function updateAuthArea(user) {
   }
 }
 
-function showAuthModal() {
-  document.getElementById('authModal').style.display = 'flex';
+function showAuthModal(tab) {
+  var modal = document.getElementById('authModal');
+  if (modal) modal.style.display = 'flex';
+  switchAuthTab(tab || 'signin');
+  setTimeout(function(){ var el=document.getElementById('authEmail'); if(el) el.focus(); }, 100);
+}
+
+function switchAuthTab(tab) {
+  var signInView = document.getElementById('authSignInView');
+  var signUpView = document.getElementById('authSignUpView');
+  var tabSignIn = document.getElementById('tabSignIn');
+  var tabSignUp = document.getElementById('tabSignUp');
+  var passInput = document.getElementById('authPassword');
+  if (tab === 'signin') {
+    if (signInView) signInView.style.display = 'block';
+    if (signUpView) signUpView.style.display = 'none';
+    if (tabSignIn) tabSignIn.classList.add('active');
+    if (tabSignUp) tabSignUp.classList.remove('active');
+    if (passInput) passInput.placeholder = 'Password';
+  } else {
+    if (signInView) signInView.style.display = 'none';
+    if (signUpView) signUpView.style.display = 'block';
+    if (tabSignIn) tabSignIn.classList.remove('active');
+    if (tabSignUp) tabSignUp.classList.add('active');
+    if (passInput) passInput.placeholder = 'Password (min 6 characters)';
+  }
+  clearAuthMessages();
+}
+
+function clearAuthMessages() {
+  var err = document.getElementById('authError');
+  var suc = document.getElementById('authSuccess');
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+  if (suc) { suc.style.display = 'none'; suc.textContent = ''; }
 }
 
 function showAuthError(msg) {
-  var el = document.getElementById('authError');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
+  var err = document.getElementById('authError');
+  var suc = document.getElementById('authSuccess');
+  if (err) { err.textContent = '⚠️ ' + msg; err.style.display = 'block'; }
+  if (suc) suc.style.display = 'none';
+}
+
+function showAuthSuccess(msg) {
+  var err = document.getElementById('authError');
+  var suc = document.getElementById('authSuccess');
+  if (suc) { suc.textContent = '✅ ' + msg; suc.style.display = 'block'; }
+  if (err) err.style.display = 'none';
+}
+
+function handleModalBgClick(e) {
+  if (e.target.id === 'authModal') closeModal();
+}
+
+function sendPasswordReset() {
+  var email = document.getElementById('authEmail').value.trim();
+  if (!email) { showAuthError('Enter your email address first.'); return; }
+  if (!firebase || !firebase.auth) { showAuthError('Auth not ready yet.'); return; }
+  firebase.auth().sendPasswordResetEmail(email)
+    .then(function() { showAuthSuccess('Reset email sent! Check your inbox.'); })
+    .catch(function(e) { showAuthError(e.message); });
 }
 
 var genreNames = {
@@ -1215,9 +1351,14 @@ function escAttr(s){return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'
       var email = document.getElementById('authEmail').value.trim();
       var pass = document.getElementById('authPassword').value;
       if (!email || !pass) { showAuthError('Please enter email and password.'); return; }
+      var btn = document.getElementById('authSignInBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Signing in...'; }
       _auth.signInWithEmailAndPassword(email, pass)
         .then(function() { hideAuthModal(); })
-        .catch(function(e) { showAuthError(e.message); });
+        .catch(function(e) {
+          showAuthError(e.message);
+          if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+        });
     };
 
     window.signUpEmail = function() {
@@ -1225,9 +1366,14 @@ function escAttr(s){return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'
       var pass = document.getElementById('authPassword').value;
       if (!email || !pass) { showAuthError('Please fill in email and password.'); return; }
       if (pass.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+      var btn = document.getElementById('authSignUpBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Creating account...'; }
       _auth.createUserWithEmailAndPassword(email, pass)
         .then(function(r) { saveUserToFirestore(r.user); hideAuthModal(); })
-        .catch(function(e) { showAuthError(e.message); });
+        .catch(function(e) {
+          showAuthError(e.message);
+          if (btn) { btn.disabled = false; btn.textContent = 'Create Account'; }
+        });
     };
 
     window.doSignOut = function() { _auth.signOut(); };
