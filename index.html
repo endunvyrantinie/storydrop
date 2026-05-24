@@ -7,105 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
-<!-- Firebase compat SDKs (more reliable than modules in plain HTML) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDRRZYGD8Id-5m5-ATWmLEIdKRfNWy5Jzo",
-    authDomain: "storydrop-cdffe.firebaseapp.com",
-    projectId: "storydrop-cdffe",
-    storageBucket: "storydrop-cdffe.firebasestorage.app",
-    messagingSenderId: "108430264004",
-    appId: "1:108430264004:web:a132210f938b692d116b91"
-  };
 
-  firebase.initializeApp(firebaseConfig);
-  var _auth = firebase.auth();
-  var _db = firebase.firestore();
 
-  _auth.onAuthStateChanged(async function(user) {
-    if (user) {
-      window._currentUser = user;
-      try {
-        var snap = await _db.collection('users').doc(user.uid).get();
-        var data = snap.exists ? snap.data() : {};
-        window._userIsPro = data.isPro === true;
-        window._userGensUsed = data.generationsUsed || 0;
-      } catch(e) {
-        window._userIsPro = false;
-        window._userGensUsed = 0;
-      }
-      if (typeof window.onUserSignedIn === 'function') window.onUserSignedIn(user);
-    } else {
-      window._currentUser = null;
-      window._userIsPro = false;
-      if (typeof window.onUserSignedOut === 'function') window.onUserSignedOut();
-    }
-  });
-
-  window.signInGoogle = function() {
-    var provider = new firebase.auth.GoogleAuthProvider();
-    _auth.signInWithPopup(provider)
-      .then(function(result) {
-        saveUserToFirestore(result.user);
-        closeModal();
-      })
-      .catch(function(err) { showAuthError(err.message); });
-  };
-
-  window.signInEmail = function() {
-    var email = document.getElementById('authEmail').value.trim();
-    var pass = document.getElementById('authPassword').value;
-    if (!email || !pass) { showAuthError('Please enter email and password.'); return; }
-    _auth.signInWithEmailAndPassword(email, pass)
-      .then(function() { closeModal(); })
-      .catch(function(err) { showAuthError(err.message); });
-  };
-
-  window.signUpEmail = function() {
-    var email = document.getElementById('authEmail').value.trim();
-    var pass = document.getElementById('authPassword').value;
-    if (!email || !pass) { showAuthError('Please enter email and password.'); return; }
-    if (pass.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
-    _auth.createUserWithEmailAndPassword(email, pass)
-      .then(function(result) {
-        saveUserToFirestore(result.user);
-        closeModal();
-      })
-      .catch(function(err) { showAuthError(err.message); });
-  };
-
-  window.doSignOut = function() {
-    _auth.signOut();
-  };
-
-  window.saveUserToFirestore = async function(user) {
-    try {
-      var ref = _db.collection('users').doc(user.uid);
-      var snap = await ref.get();
-      if (!snap.exists) {
-        await ref.set({
-          email: user.email || '',
-          displayName: user.displayName || '',
-          isPro: false,
-          generationsUsed: 0,
-          createdAt: new Date().toISOString()
-        });
-      }
-    } catch(e) { console.error('Firestore error:', e); }
-  };
-
-  window.syncGenerationsToFirestore = async function() {
-    if (!window._currentUser) return;
-    try {
-      await _db.collection('users').doc(window._currentUser.uid).set(
-        { generationsUsed: generationsUsed }, { merge: true }
-      );
-    } catch(e) { console.error(e); }
-  };
-</script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -1253,6 +1156,102 @@ function activatePro(){
 // ── UTILS ──
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function escAttr(s){return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+</script>
+<!-- Firebase SDKs loaded last to ensure DOM is ready -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(function() {
+  var firebaseConfig = {
+    apiKey: "AIzaSyDRRZYGD8Id-5m5-ATWmLEIdKRfNWy5Jzo",
+    authDomain: "storydrop-cdffe.firebaseapp.com",
+    projectId: "storydrop-cdffe",
+    storageBucket: "storydrop-cdffe.firebasestorage.app",
+    messagingSenderId: "108430264004",
+    appId: "1:108430264004:web:a132210f938b692d116b91"
+  };
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+    var _auth = firebase.auth();
+    var _db = firebase.firestore();
+
+    _auth.onAuthStateChanged(function(user) {
+      if (user) {
+        window._currentUser = user;
+        _db.collection('users').doc(user.uid).get().then(function(snap) {
+          var data = snap.exists ? snap.data() : {};
+          window._userIsPro = data.isPro === true;
+          window._userGensUsed = data.generationsUsed || 0;
+          if (typeof window.onUserSignedIn === 'function') window.onUserSignedIn(user);
+        }).catch(function() {
+          window._userIsPro = false;
+          window._userGensUsed = 0;
+          if (typeof window.onUserSignedIn === 'function') window.onUserSignedIn(user);
+        });
+      } else {
+        window._currentUser = null;
+        window._userIsPro = false;
+        if (typeof window.onUserSignedOut === 'function') window.onUserSignedOut();
+      }
+    });
+
+    window.signInGoogle = function() {
+      var provider = new firebase.auth.GoogleAuthProvider();
+      _auth.signInWithPopup(provider)
+        .then(function(r) { saveUserToFirestore(r.user); closeModal(); })
+        .catch(function(e) { showAuthError(e.message); });
+    };
+
+    window.signInEmail = function() {
+      var email = document.getElementById('authEmail').value.trim();
+      var pass = document.getElementById('authPassword').value;
+      if (!email || !pass) { showAuthError('Please enter email and password.'); return; }
+      _auth.signInWithEmailAndPassword(email, pass)
+        .then(function() { closeModal(); })
+        .catch(function(e) { showAuthError(e.message); });
+    };
+
+    window.signUpEmail = function() {
+      var email = document.getElementById('authEmail').value.trim();
+      var pass = document.getElementById('authPassword').value;
+      if (!email || !pass) { showAuthError('Please fill in email and password.'); return; }
+      if (pass.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+      _auth.createUserWithEmailAndPassword(email, pass)
+        .then(function(r) { saveUserToFirestore(r.user); closeModal(); })
+        .catch(function(e) { showAuthError(e.message); });
+    };
+
+    window.doSignOut = function() { _auth.signOut(); };
+
+    window.saveUserToFirestore = function(user) {
+      _db.collection('users').doc(user.uid).get().then(function(snap) {
+        if (!snap.exists) {
+          _db.collection('users').doc(user.uid).set({
+            email: user.email || '',
+            displayName: user.displayName || '',
+            isPro: false,
+            generationsUsed: 0,
+            createdAt: new Date().toISOString()
+          });
+        }
+      }).catch(function(e) { console.error(e); });
+    };
+
+    window.syncGenerationsToFirestore = function() {
+      if (!window._currentUser) return;
+      _db.collection('users').doc(window._currentUser.uid)
+        .set({ generationsUsed: generationsUsed }, { merge: true })
+        .catch(function(e) { console.error(e); });
+    };
+
+    window._firebaseReady = true;
+    console.log('✅ Firebase initialized successfully');
+  } catch(e) {
+    console.error('Firebase init error:', e);
+  }
+})();
 </script>
 </body>
 </html>
