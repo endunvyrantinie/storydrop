@@ -470,7 +470,7 @@ select {
 <div class="plan-bar">
   <div class="plan-info">
     <div class="plan-pip" id="planPip"></div>
-    <div class="plan-text"><b id="planLabel">Free Plan</b> — <span id="planCount">5 stories left</span></div>
+    <div class="plan-text"><b id="planLabel">Free Plan</b> — <span id="planCount">5 free stories left</span></div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <div id="authArea">
@@ -722,7 +722,17 @@ function updateAuthArea(user) {
       '<span style="font-size:13px;font-weight:600;color:var(--ink);">'+avatar+name+'</span>'+
       '<button class="upgrade-btn" style="background:var(--slate);box-shadow:none;padding:5px 10px;" onclick="doSignOut()">Sign out</button>'+
       '</div>';
+    // Show/hide upgrade button based on Pro status
     if (upgradeBtn) upgradeBtn.style.display = isPro ? 'none' : '';
+    // Show Pro badge if Pro
+    var proBadge = document.getElementById('proBadge');
+    if (!proBadge && isPro) {
+      var badge = document.createElement('span');
+      badge.id = 'proBadge';
+      badge.style.cssText = 'background:var(--sage);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;';
+      badge.textContent = '⭐ Pro';
+      area.querySelector('div').appendChild(badge);
+    }
   } else {
     area.innerHTML = '<button class="upgrade-btn" style="background:var(--slate);box-shadow:none;" onclick="showAuthModal()">🔑 Login</button>';
     if (upgradeBtn) upgradeBtn.style.display = '';
@@ -836,6 +846,65 @@ var svgCovers = {
 // ── INIT ──
 updatePlanBar(); updateSavedCount();
 
+// ── HANDLE STRIPE REDIRECT ──
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('payment') === 'success') {
+    window.history.replaceState({}, '', window.location.pathname);
+    // Show banner immediately
+    var banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--sage);color:#fff;text-align:center;padding:12px;font-size:14px;font-weight:700;z-index:9999;';
+    banner.textContent = '🎉 Payment successful! Activating your Pro account...';
+    document.body.prepend(banner);
+
+    // Poll for Pro status — retry every 2 seconds up to 10 times
+    var attempts = 0;
+    var uid = params.get('uid');
+
+    function checkProStatus() {
+      attempts++;
+      if (!window._currentUser && attempts < 15) {
+        setTimeout(checkProStatus, 1000); return;
+      }
+      var checkUid = (window._currentUser && window._currentUser.uid) || uid;
+      if (!checkUid) {
+        banner.textContent = '✅ Payment received! Please sign in to activate Pro.';
+        return;
+      }
+      fetch(API_BASE + '/check-pro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: checkUid })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.isPro) {
+          activatePro();
+          banner.style.background = 'var(--sage)';
+          banner.textContent = '⭐ Welcome to Pro! You now have unlimited access.';
+          setTimeout(function() {
+            banner.style.transition = 'opacity 0.5s';
+            banner.style.opacity = '0';
+            setTimeout(function() { banner.remove(); }, 500);
+          }, 4000);
+        } else if (attempts < 10) {
+          setTimeout(checkProStatus, 2000);
+        } else {
+          banner.style.background = 'var(--gold)';
+          banner.textContent = '✅ Payment received! Sign out and back in to activate Pro.';
+        }
+      })
+      .catch(function() {
+        if (attempts < 10) setTimeout(checkProStatus, 2000);
+      });
+    }
+    setTimeout(checkProStatus, 1500);
+  }
+  if (params.get('payment') === 'cancelled') {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+})();
+
 // ── TABS ──
 function showTab(n) {
   document.querySelectorAll('.section-view').forEach(function(s){s.classList.remove('active');});
@@ -939,11 +1008,12 @@ window.speechSynthesis.onvoiceschanged=loadVoices; loadVoices();
 
 // ── PLAN ──
 function updatePlanBar(){
-  var rem=Math.max(0,MAX_FREE-generationsUsed);
-  var pip=document.getElementById('planPip');
-  document.getElementById('planLabel').textContent=isPro?'⭐ Pro Plan':'Free Plan';
-  document.getElementById('planCount').textContent=isPro?'Unlimited generations':rem+' stor'+(rem!==1?'ies':'y')+' left';
-  if(pip){pip.className='plan-pip'+(isPro?' pro':'');}
+  var REAL_MAX = 5; // Real free limit shown to users
+  var rem = Math.max(0, REAL_MAX - generationsUsed);
+  var pip = document.getElementById('planPip');
+  document.getElementById('planLabel').textContent = isPro ? '⭐ Pro Plan' : 'Free Plan';
+  document.getElementById('planCount').textContent = isPro ? 'Unlimited access' : rem + ' free stor' + (rem !== 1 ? 'ies' : 'y') + ' left';
+  if (pip) pip.className = 'plan-pip' + (isPro ? ' pro' : '');
 }
 function canGenerate(){return isPro||generationsUsed<MAX_FREE;}
 
@@ -1240,11 +1310,18 @@ function closeModal(){
   var ae=document.getElementById('authError'); if(ae) ae.style.display='none';
 }
 function activatePro(){
-  // Called after successful Stripe payment webhook updates Firebase
   isPro = true;
   updatePlanBar();
-  var btn = document.querySelector('.upgrade-btn');
-  if (btn) { btn.textContent = '⭐ Pro'; btn.style.background = 'var(--sage)'; }
+  // Hide upgrade button
+  var upgradeBtn = document.getElementById('upgradeTopBtn');
+  if (upgradeBtn) upgradeBtn.style.display = 'none';
+  // Update plan pip to green
+  var pip = document.getElementById('planPip');
+  if (pip) pip.className = 'plan-pip pro';
+  // Update plan label
+  document.getElementById('planLabel').textContent = '⭐ Pro Plan';
+  // Update auth area to show Pro badge
+  if (window._currentUser) updateAuthArea(window._currentUser);
   if (storyText) renderStoryCard(false);
 }
 
