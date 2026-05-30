@@ -1275,9 +1275,9 @@ function startStripeCheckout() {
     }
   })
   .catch(function(e) {
-    console.error(e);
+    console.error('Checkout error:', e);
     if (btn) { btn.disabled = false; btn.textContent = 'Subscribe Now 🚀'; }
-    alert('Could not start checkout. Please try again.');
+    alert('Could not start checkout: ' + (e.message || 'Unknown error'));
   });
 }
 
