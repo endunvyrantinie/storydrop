@@ -640,18 +640,42 @@ select {
   <div class="modal">
     <div style="font-size:42px;margin-bottom:10px;">⭐</div>
     <h2>Upgrade to Pro</h2>
-    <p>Unlimited stories, AI cover art, Story Visualizer, and priority features — less than a teh tarik per day.</p>
+    <p>Unlimited stories, Thread Seller, and priority features — all for less than a teh tarik per day.</p>
+
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1.25rem;text-align:left;">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
+          <span style="color:var(--sage);">✓</span> Unlimited story generations
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
+          <span style="color:var(--sage);">✓</span> Thread Story-Seller (all genres)
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
+          <span style="color:var(--sage);">✓</span> Stories saved to cloud
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
+          <span style="color:var(--sage);">✓</span> 500-word stories (vs 400 free)
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
+          <span style="color:var(--sage);">✓</span> Priority access to new features
+        </div>
+      </div>
+    </div>
+
     <div class="modal-price">RM 5 / month</div>
-    <button class="modal-btn" onclick="activatePro()">Upgrade Now 🚀</button><br>
+    <button class="modal-btn" id="stripePayBtn" onclick="startStripeCheckout()">Subscribe Now 🚀</button>
+    <br>
     <button class="modal-close" onclick="closeModal()">Maybe later</button>
   </div>
 </div>
 <div class="modal-bg" id="paywallModal" style="display:none;">
   <div class="modal">
     <div style="font-size:42px;margin-bottom:10px;">🔒</div>
-    <h2>You've reached your limit</h2>
-    <p>Free users get 5 story generations. Upgrade to Pro for unlimited!</p>
-    <button class="modal-btn" onclick="activatePro()">Go Pro — RM5/mo ⭐</button><br>
+    <h2>You've used your 5 free stories</h2>
+    <p>Upgrade to Pro for unlimited stories, Thread Seller and more — only RM5/month!</p>
+    <div class="modal-price">RM 5 / month</div>
+    <button class="modal-btn" onclick="closeModal(); showUpgradeModal();">See Pro Features ⭐</button>
+    <br>
     <button class="modal-close" onclick="closeModal()">Not now</button>
   </div>
 </div>
@@ -664,7 +688,7 @@ var storyText='', storyTitle='', storyGenre='', storyEmoji='';
 var isPlaying=false, progTimer=null;
 var isPro=false;
 var generationsUsed = parseInt(localStorage.getItem('sd_gens')||'0');
-var MAX_FREE=5;
+var MAX_FREE = 999; // Testing mode — set back to 5 before launch
 var savedStories = JSON.parse(localStorage.getItem('sd_saved')||'[]');
 var selectedObj='sebatang pen', editMode=false, currentStoryId=null, currentCoverUrl=null;
 var threadGenre='Romance', threadEmoji='💕', threadLang='English';
@@ -1002,45 +1026,10 @@ function renderStoryCard(inEdit){
 }
 
 function renderVizSection(){
-  var t=ui[lang];
-  if(!isPro){
-    return '<div class="viz-wrap"><div class="viz-head"><i class="ti ti-brain"></i> '+t.vizTitle+' <span class="viz-pro-badge">PRO</span></div>'+
-      '<div class="viz-locked"><i class="ti ti-lock"></i><div style="font-weight:700;color:var(--gold-dark);margin-bottom:4px;">Unlock Story Visualizer + Cover Art</div>'+
-      '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Characters, plot arc breakdown, AI-generated cover.</div>'+
-      '<button class="btn-sm gold-tint" onclick="showUpgradeModal()"><i class="ti ti-star"></i> Upgrade · RM5/mo</button></div></div>';
-  }
-  return '<div class="viz-wrap" id="vizWrap"><div class="viz-head"><i class="ti ti-brain"></i> '+t.vizTitle+' <span class="viz-pro-badge">PRO</span>'+
-    '<div style="display:flex;gap:6px;margin-left:auto;">'+
-    '<button class="btn-sm" style="padding:4px 10px;font-size:12px;" onclick="generateCoverImage()"><i class="ti ti-photo"></i> Cover</button>'+
-    '<button class="btn-sm" style="padding:4px 10px;font-size:12px;" onclick="loadVisualization()"><i class="ti ti-wand"></i> Analyse</button>'+
-    '</div></div>'+
-    '<div id="vizContent"><div style="font-size:13px;color:var(--muted);">Click Analyse to visualise, or Cover to generate art.</div></div></div>';
+  return ''; // Cover art and visualizer coming soon
 }
 
-function generateCoverImage(){
-  var cover=document.querySelector('.story-cover');
-  var vizC=document.getElementById('vizContent');
-  if(!cover) return;
-  var genreLabel=genreNames[lang][storyGenre]||storyGenre;
-  var svg=svgCovers[storyGenre]||svgCovers['Fantasy'];
-  var overlay=cover.querySelector('.cover-overlay');
-  cover.style.position='relative'; cover.style.overflow='hidden';
-  cover.innerHTML=svg;
-  if(overlay) cover.appendChild(overlay);
-  else{
-    var ov=document.createElement('div'); ov.className='cover-overlay';
-    ov.innerHTML='<div class="cover-title">'+escHtml(storyTitle)+'</div><div class="cover-meta">'+storyEmoji+' '+genreLabel+'</div>';
-    cover.appendChild(ov);
-  }
-  currentCoverUrl='svg';
-  if(vizC){
-    var ex=document.getElementById('imgNote'); if(ex) ex.remove();
-    var note=document.createElement('div'); note.id='imgNote';
-    note.style.cssText='font-size:12px;margin-bottom:8px;padding:8px 12px;background:var(--sage-light);border-radius:8px;border:1px solid var(--sage);color:var(--sage-dark);';
-    note.textContent='✅ Cover generated!';
-    vizC.parentNode.insertBefore(note,vizC);
-  }
-}
+function generateCoverImage(){ /* Coming soon */ }
 
 // ── THREAD ──
 document.getElementById('threadBtn').addEventListener('click', generateThread);
@@ -1208,40 +1197,8 @@ function deleteSaved(id){
   renderSaved();
 }
 
-// ── VISUALIZER ──
-function loadVisualization(){
-  var el=document.getElementById('vizContent'); if(!el) return;
-  el.innerHTML='<div class="loading" style="padding:1.5rem 0;"><span class="spinner"></span>Analysing story...</div>';
-  fetch(API_BASE+'/visualize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({storyText:storyText,isPro:isPro})})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d.success) throw new Error(d.error);
-    var v=d;
-    var arcC=['#D97706','#E11D48','#7C3AED','#0D9488'];
-    var arcBg=['#FEF3C7','#FFF1F2','#F5F3FF','#F0FDFA'];
-    var html='<div>';
-    if(v.theme) html+='<div style="font-size:13px;color:var(--ink2);font-style:italic;margin-bottom:12px;padding:10px 12px;background:var(--gold-light);border-radius:8px;border:1px solid rgba(217,119,6,0.15);">🎯 '+escHtml(v.theme)+'</div>';
-    html+='<div style="margin-bottom:12px;"><div class="field-label">Plot Arc</div><div class="arc-row">';
-    v.arc.forEach(function(step,i){
-      html+='<div class="arc-step"><div class="arc-line"></div><div class="arc-dot" style="background:'+arcBg[i]+';color:'+arcC[i]+';position:relative;z-index:1;">'+(i+1)+'</div>'+
-        '<div class="arc-label" style="color:'+arcC[i]+';font-weight:700;font-size:10px;">'+escHtml(step.label)+'</div>'+
-        '<div class="arc-label">'+escHtml(step.desc)+'</div></div>';
-    });
-    html+='</div></div>';
-    if(v.characters&&v.characters.length){
-      html+='<div class="field-label">Characters</div>';
-      v.characters.forEach(function(c){
-        html+='<div class="char-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'+
-          '<div style="width:32px;height:32px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;">'+escHtml(c.name.charAt(0))+'</div>'+
-          '<div><div class="char-name">'+escHtml(c.name)+'</div><div class="char-role">'+escHtml(c.role)+'</div></div></div>'+
-          '<div class="char-desc">'+escHtml(c.desc)+'</div></div>';
-      });
-    }
-    html+='</div>';
-    el.innerHTML=html;
-  })
-  .catch(function(){el.innerHTML='<div style="font-size:13px;color:var(--muted);">Could not analyse. Try again.</div>';});
-}
+// ── VISUALIZER ── (coming soon)
+function loadVisualization(){ /* Coming soon */ }
 
 // ── VOICE ──
 function toggleVoice(){
@@ -1283,10 +1240,82 @@ function closeModal(){
   var ae=document.getElementById('authError'); if(ae) ae.style.display='none';
 }
 function activatePro(){
-  isPro=true;closeModal();updatePlanBar();
-  document.querySelector('.upgrade-btn').textContent='⭐ Pro Active';
-  document.querySelector('.upgrade-btn').style.background='var(--sage)';
-  if(storyText) renderStoryCard(false);
+  // Called after successful Stripe payment webhook updates Firebase
+  isPro = true;
+  updatePlanBar();
+  var btn = document.querySelector('.upgrade-btn');
+  if (btn) { btn.textContent = '⭐ Pro'; btn.style.background = 'var(--sage)'; }
+  if (storyText) renderStoryCard(false);
+}
+
+function startStripeCheckout() {
+  var btn = document.getElementById('stripePayBtn');
+  if (!window._currentUser) {
+    closeModal();
+    showAuthModal('signin');
+    setTimeout(function(){ showAuthError('Please sign in first to upgrade to Pro!'); }, 300);
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirecting...'; }
+  // Call Railway to create a Stripe checkout session
+  fetch(API_BASE + '/create-checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      uid: window._currentUser.uid,
+      email: window._currentUser.email,
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.url) {
+      window.location.href = data.url; // Redirect to Stripe checkout
+    } else {
+      throw new Error('No checkout URL');
+    }
+  })
+  .catch(function(e) {
+    console.error(e);
+    if (btn) { btn.disabled = false; btn.textContent = 'Subscribe Now 🚀'; }
+    alert('Could not start checkout. Please try again.');
+  });
+}
+
+// ── WAITLIST ──
+function joinWaitlist() {
+  var email = document.getElementById('proWaitlistEmail').value.trim();
+  if (!email) { alert('Please enter your email!'); return; }
+  // Save to localStorage for now
+  var list = JSON.parse(localStorage.getItem('sd_waitlist') || '[]');
+  if (list.indexOf(email) === -1) list.push(email);
+  localStorage.setItem('sd_waitlist', JSON.stringify(list));
+  // If logged in, save to Firestore too
+  if (window._currentUser && window.syncGenerationsToFirestore) {
+    try {
+      var _db = firebase.firestore();
+      _db.collection('waitlist').add({ email: email, uid: window._currentUser.uid, joinedAt: new Date().toISOString() });
+    } catch(e) {}
+  }
+  document.getElementById('upgradeModal').innerHTML = '<div class="modal" style="animation:slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1);">' +
+    '<div style="font-size:48px;margin-bottom:12px;">🎉</div>' +
+    '<h2 style="font-family:Playfair Display,serif;font-size:22px;margin-bottom:8px;">You're on the list!</h2>' +
+    '<p style="font-size:14px;color:var(--muted);margin-bottom:1.5rem;">We'll email <strong>' + email + '</strong> the moment Pro launches.</p>' +
+    '<button class="modal-btn" onclick="closeModal()">Got it!</button>' +
+    '</div>';
+}
+
+function joinWaitlistPaywall() {
+  var email = document.getElementById('paywallEmail').value.trim();
+  if (!email) { alert('Please enter your email!'); return; }
+  var list = JSON.parse(localStorage.getItem('sd_waitlist') || '[]');
+  if (list.indexOf(email) === -1) list.push(email);
+  localStorage.setItem('sd_waitlist', JSON.stringify(list));
+  document.getElementById('paywallModal').innerHTML = '<div class="modal" style="animation:slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1);">' +
+    '<div style="font-size:48px;margin-bottom:12px;">🎉</div>' +
+    '<h2 style="font-family:Playfair Display,serif;font-size:22px;margin-bottom:8px;">You're on the list!</h2>' +
+    '<p style="font-size:14px;color:var(--muted);margin-bottom:1.5rem;">We'll notify you at <strong>' + email + '</strong> when Pro launches.</p>' +
+    '<button class="modal-btn" onclick="closeModal()">Got it!</button>' +
+    '</div>';
 }
 
 // ── UTILS ──
