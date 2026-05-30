@@ -696,10 +696,20 @@ var threadPosts=[], threadBrand='', threadEditMode=false;
 
 // ── FIREBASE AUTH CALLBACKS ──
 window.onUserSignedIn = function(user) {
-  isPro = window._userIsPro || false;
+  isPro = window._userIsPro === true;
   generationsUsed = window._userGensUsed || parseInt(localStorage.getItem('sd_gens')||'0');
+  console.log('User signed in:', user.email, '| isPro:', isPro);
   updatePlanBar();
   updateAuthArea(user);
+  // If Pro, make sure upgrade button is hidden
+  if (isPro) {
+    var upgradeBtn = document.getElementById('upgradeTopBtn');
+    if (upgradeBtn) upgradeBtn.style.display = 'none';
+    document.getElementById('planLabel').textContent = '⭐ Pro Plan';
+    document.getElementById('planCount').textContent = 'Unlimited access';
+    var pip = document.getElementById('planPip');
+    if (pip) pip.className = 'plan-pip pro';
+  }
 };
 
 window.onUserSignedOut = function() {
@@ -1426,8 +1436,11 @@ function escAttr(s){return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'
           var data = snap.exists ? snap.data() : {};
           window._userIsPro = data.isPro === true;
           window._userGensUsed = data.generationsUsed || 0;
+          console.log('Firestore user data:', JSON.stringify(data));
+          console.log('isPro from Firestore:', window._userIsPro);
           if (typeof window.onUserSignedIn === 'function') window.onUserSignedIn(user);
-        }).catch(function() {
+        }).catch(function(e) {
+          console.error('Firestore read error:', e);
           window._userIsPro = false;
           window._userGensUsed = 0;
           if (typeof window.onUserSignedIn === 'function') window.onUserSignedIn(user);
